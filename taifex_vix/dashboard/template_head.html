@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>台指選擇權 7/14 天 VIX</title>
 
 <style>
@@ -124,6 +126,8 @@
     background: var(--ink); color: var(--surface); border-color: var(--ink);
   }
   button.range:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; }
+
+  .stamp { font-size: 11.5px; color: var(--muted); letter-spacing: 0.02em; }
 
   /* ---------- stat tiles ---------- */
   .tiles {
@@ -257,6 +261,8 @@
       <span class="label">年度</span>
     </div>
   </div>
+
+  <div class="stamp mono" id="stamp"></div>
 
   <section class="tiles" id="tiles" aria-label="最新數值"></section>
 

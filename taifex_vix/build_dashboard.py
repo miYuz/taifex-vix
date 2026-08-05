@@ -11,6 +11,7 @@
 import json
 import os
 import sys
+from datetime import datetime
 
 import pandas as pd
 
@@ -63,18 +64,32 @@ def build(out_path=None, verbose=True):
     df["trade_date"] = pd.to_datetime(df["trade_date"])
 
     payload = build_payload(df)
+    payload["built"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+
     head = open(os.path.join(TPL_DIR, "template_head.html"),
                 encoding="utf-8").read()
     tail = open(os.path.join(TPL_DIR, "template_tail.js"),
                 encoding="utf-8").read()
 
-    data_js = "const DATA = " + json.dumps(payload, separators=(",", ":")) + ";"
-    html = head + "\n<script>\n" + data_js + "\n" + tail + "\n</" + "script>\n"
+    blob = json.dumps(payload, separators=(",", ":"))
+
+    # 資料同時寫成獨立檔:頁面執行時會用 no-store 抓它。
+    # GitHub Pages 對 HTML 送 Cache-Control: max-age=600,只靠內嵌的話
+    # 使用者會被快取的舊頁面卡住看不到當天資料。
+    data_path = os.path.join(os.path.dirname(os.path.abspath(out_path)),
+                             "data.json")
+    with open(data_path, "w", encoding="utf-8") as f:
+        f.write(blob)
+
+    # 內嵌一份當備援:離線或用 file:// 直接開檔時 fetch 會失敗,照樣能看
+    html = (head + "\n<script>\nlet DATA = " + blob + ";\n" + tail +
+            "\n</" + "script>\n")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
     if verbose:
         print(f"儀表板已重建: {out_path}  ({len(html):,} bytes, "
               f"{len(df)} 個交易日, 最後 {df.trade_date.max():%Y-%m-%d})")
+        print(f"資料檔: {data_path}  ({len(blob):,} bytes)")
     return out_path
 
 

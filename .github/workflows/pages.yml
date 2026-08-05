@@ -33,7 +33,9 @@ jobs:
         run: |
           test -f docs/index.html || { echo "docs/index.html 不存在"; exit 1; }
           echo "size: $(wc -c < docs/index.html) bytes"
-          grep -q 'const DATA' docs/index.html || { echo "找不到內嵌資料"; exit 1; }
+          grep -qE '(const|let) DATA' docs/index.html || { echo "index.html 找不到內嵌資料"; exit 1; }
+          test -f docs/data.json || { echo "docs/data.json 不存在"; exit 1; }
+          python -c "import json,sys; d=json.load(open('docs/data.json',encoding='utf-8')); sys.exit(0 if d.get('d') else 1)" || { echo "data.json 內容有問題"; exit 1; }
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

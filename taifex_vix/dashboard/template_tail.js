@@ -14,8 +14,10 @@ const SERIES = [
   { key: "v14", name: "VIX 14天", color: "--s2", short: "14天" },
 ];
 
-const N = DATA.d.length;
-let view = { from: 0, to: N };            // [from, to) 索引區間
+// N / YEARS / view 在 boot() 裡才決定 —— 資料可能被 data.json 換掉(見檔尾)
+let N = 0;
+let view = { from: 0, to: 0 };            // [from, to) 索引區間
+let YEARS = new Map();
 
 const KEYS = ["d", "v7", "v14", "v30", "m7", "m14", "s7", "s14", "ba", "px"];
 const slice = () => {
@@ -24,16 +26,16 @@ const slice = () => {
   return o;
 };
 
-// 年度 → [起始索引, 結束索引) ,給年度按鈕用
-const YEARS = (() => {
-  const m = new Map();
+function indexData() {
+  N = DATA.d.length;
+  view = { from: 0, to: N };
+  YEARS = new Map();                      // 年度 → [起始索引, 結束索引)
   DATA.d.forEach((iso, i) => {
     const y = iso.slice(0, 4);
-    if (!m.has(y)) m.set(y, [i, i + 1]);
-    else m.get(y)[1] = i + 1;
+    if (!YEARS.has(y)) YEARS.set(y, [i, i + 1]);
+    else YEARS.get(y)[1] = i + 1;
   });
-  return m;
-})();
+}
 
 /* 三張圖共用左右邊界,繪圖區才會嚴格對齊(游標線要貫穿,對齊是前提)。
    各自寫死的話很容易在改動時漂掉。 */
@@ -457,15 +459,19 @@ function render() {
 }
 
 // 年度按鈕(依資料自動生成,不寫死年份)
-const yearRow = document.getElementById("yearRow");
-for (const [y, [a, b]] of YEARS) {
-  const btn = document.createElement("button");
-  btn.className = "range";
-  btn.dataset.from = a;
-  btn.dataset.to = b;
-  btn.setAttribute("aria-pressed", "false");
-  btn.textContent = y;
-  yearRow.appendChild(btn);
+function buildYearButtons() {
+  const yearRow = document.getElementById("yearRow");
+  yearRow.querySelectorAll("button").forEach((b) => b.remove());
+  for (const [y, [a, b]] of YEARS) {
+    const btn = document.createElement("button");
+    btn.className = "range";
+    btn.dataset.from = a;
+    btn.dataset.to = b;
+    btn.setAttribute("aria-pressed", "false");
+    btn.textContent = y;
+    btn.addEventListener("click", () => selectButton(btn));
+    yearRow.appendChild(btn);
+  }
 }
 
 // 兩組互斥:選了年度就取消區間,反之亦然
@@ -483,7 +489,7 @@ function selectButton(b) {
   render();
 }
 
-document.querySelectorAll("button.range")
+document.querySelectorAll(".filters button.range")
   .forEach((b) => b.addEventListener("click", () => selectButton(b)));
 
 let rt;
@@ -494,8 +500,36 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 new MutationObserver(render).observe(document.documentElement,
   { attributes: true, attributeFilter: ["data-theme"] });
 
-// 初始區間跟著 HTML 裡 aria-pressed="true" 的那顆按鈕走。
-// 直接 render() 的話 view 還停在預設的「全部」,按鈕卻標著「近 1 月」,
-// 得手動再點一次才會一致。
-selectButton(document.querySelector('button.range[aria-pressed="true"]') ||
-             document.querySelector("button.range"));
+function stamp() {
+  const el = document.getElementById("stamp");
+  if (!el) return;
+  el.textContent = `資料截至 ${DATA.d[DATA.d.length - 1]}` +
+    (DATA.built ? `　·　更新於 ${DATA.built}` : "");
+}
+
+function boot() {
+  indexData();
+  buildYearButtons();
+  stamp();
+  // 初始區間跟著 HTML 裡 aria-pressed="true" 的那顆按鈕走。
+  // 直接 render() 的話 view 還停在預設值,按鈕卻標著別的,要手動再點一次才一致。
+  selectButton(document.querySelector('.filters button.range[aria-pressed="true"]') ||
+               document.querySelector(".filters button.range"));
+}
+
+// GitHub Pages 對 HTML 送 Cache-Control: max-age=600。資料若內嵌在 HTML 裡,
+// 瀏覽器快取住頁面就等於快取住資料 —— 每天更新完,使用者仍會看到舊的。
+// 所以改成執行時去抓 data.json(no-store,絕不吃快取):就算 HTML 是快取的舊殼,
+// 資料一定是最新的。抓不到(離線、或用 file:// 直接開)就退回內嵌的那份。
+(async () => {
+  try {
+    const r = await fetch("data.json", { cache: "no-store" });
+    if (r.ok) {
+      const fresh = await r.json();
+      if (fresh && Array.isArray(fresh.d) && fresh.d.length) DATA = fresh;
+    }
+  } catch (e) {
+    /* file:// 或離線:用內嵌的那份,功能不受影響 */
+  }
+  boot();
+})();
