@@ -819,6 +819,10 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
 new MutationObserver(render).observe(document.documentElement,
   { attributes: true, attributeFilter: ["data-theme"] });
 
-render();
+// 初始區間跟著 HTML 裡 aria-pressed="true" 的那顆按鈕走。
+// 直接 render() 的話 view 還停在預設的「全部」,按鈕卻標著「近 1 月」,
+// 得手動再點一次才會一致。
+selectButton(document.querySelector('button.range[aria-pressed="true"]') ||
+             document.querySelector("button.range"));
 
 </script>
