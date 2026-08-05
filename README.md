@@ -5,8 +5,7 @@
 
 期交所官方只發布 **30 天** 波動率指數；這個專案用同一套 CBOE 公式做出**更短天期**的版本。
 
-📊 **互動儀表板**：`https://<你的GitHub帳號>.github.io/taifex-vix/`
-（push 並啟用 Pages 後生效，記得把這行換成實際網址）
+📊 **[互動儀表板](https://miyuz.github.io/taifex-vix/)** — 7/14 天 VIX、0050 收盤價、期限結構，可依年度檢視
 
 ---
 
