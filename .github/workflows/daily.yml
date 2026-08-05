@@ -14,6 +14,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 concurrency:
   group: daily-update
@@ -22,6 +24,8 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
     steps:
       - uses: actions/checkout@v4
 
@@ -57,3 +61,13 @@ jobs:
 
           由 GitHub Actions 自動執行。"
           git push
+
+      # 這一段一定要留在這個 workflow 裡,不能指望 pages.yml 被觸發:
+      # GitHub 為了防止無限迴圈,「用 GITHUB_TOKEN 推的 commit 不會觸發其他
+      # workflow」。所以上面 push 完之後 pages.yml 根本不會跑,網站會永遠停在
+      # 最後一次「人」推的版本 —— 資料每天更新、網頁卻不動。
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - uses: actions/deploy-pages@v4
