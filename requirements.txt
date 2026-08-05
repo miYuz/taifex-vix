@@ -1,0 +1,9 @@
+# 核心(抓資料 + 算 VIX + 落地)
+pandas>=1.5
+requests>=2.28
+lxml>=4.9          # pandas.read_html 解析期交所的 HTML 表格
+pyarrow>=10.0      # 寫 parquet;沒有的話會自動略過只寫 CSV
+
+# 驗證報告 notebook 才需要
+matplotlib>=3.6
+jupyter>=1.0

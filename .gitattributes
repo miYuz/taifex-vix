@@ -1,0 +1,9 @@
+* text=auto
+
+# 批次檔在 Windows 上要 CRLF
+*.bat text eol=crlf
+
+# 資料檔統一 LF,避免每次更新都因換行差異產生假 diff
+*.csv text eol=lf
+*.parquet binary
+*.ipynb text eol=lf

@@ -1,0 +1,19 @@
+# 原始行情快取(約 1500 檔、數十 MB),可用 backfill 重建,不進版控
+raw/
+detail/
+meta/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# OS / 編輯器
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
