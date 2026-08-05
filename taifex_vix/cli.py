@@ -82,7 +82,8 @@ def cmd_daily(args):
     pipeline.save_detail(d, pack)
     out = pipeline.upsert([row])
     if not args.no_price:
-        out = pipeline.update_price_column(verbose=False)
+        # 只刷新近兩個月:CI 上沒有月檔快取,不限制會重抓幾十個月份
+        out = pipeline.update_price_column(verbose=False, months_back=2)
     print(f"{d}  {pipeline.fmt_row(row)}")
     if row.get("warnings"):
         print(f"  warnings: {row['warnings']}")

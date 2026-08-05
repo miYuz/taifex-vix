@@ -1,0 +1,56 @@
+name: Daily update
+
+# 期交所結算價實測在 14:32~15:12(台北)之間公布,所以排在 15:20 台北。
+# GitHub 的 cron 是 UTC,台北 = UTC+8 → 07:20 UTC。
+# 注意:GitHub 的排程在尖峰時段可能延遲數十分鐘。對這個用途「晚一點」是安全的
+# (結算價只會更確定),而且 --wait 會補上等待,所以不影響正確性。
+on:
+  schedule:
+    - cron: "20 7 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: 更新資料並重建儀表板
+        env:
+          # 快取放 runner 的暫存區(每次都是空的,用完即丟)
+          TAIFEX_VIX_DATA: ${{ runner.temp }}/taifex_cache
+          # 主輸出直接寫進版控目錄
+          TAIFEX_VIX_OUT: ${{ github.workspace }}/data
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m taifex_vix.cli daily --wait 30
+          python -m taifex_vix.build_dashboard docs/index.html
+
+      - name: 有變動才 commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data docs
+          if git diff --cached --quiet; then
+            echo "資料沒有變動(可能是非交易日,或結算價還沒出),不產生 commit"
+            exit 0
+          fi
+          LAST=$(python -c "import pandas as pd; d=pd.read_csv('data/vix_txo_daily.csv'); print(d.trade_date.max())")
+          git commit -m "資料更新至 ${LAST}
+
+          由 GitHub Actions 自動執行。"
+          git push

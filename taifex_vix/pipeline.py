@@ -211,24 +211,54 @@ def run_range(start, end, market_code=None, use_cache=True, allow_http=True,
     return out, stat
 
 
-def update_price_column(stock="0050", verbose=True):
+def update_price_column(stock="0050", verbose=True, months_back=None):
     """把證交所的日收盤價(分割還原後)併進主輸出的 close_{stock} 欄。
 
-    走月檔端點且有快取,所以每日更新實際上只會重抓當月那一次。
+    months_back:只刷新最近幾個月,其餘沿用既有值。本機有快取所以無所謂,
+    但在 CI 上快取是空的,不限制的話每次都要重抓 80 個月份。
+    只抓近期不影響分割還原 —— 分割還原是把「分割日之前」的價格縮放到現行基準,
+    近期視窗內沒有分割,factor 本來就是 1。
     """
     from . import twse
     out = load_output()
     if out.empty:
         return out
     out["trade_date"] = pd.to_datetime(out["trade_date"])
-    px = twse.load_close_series(out.trade_date.min().date(),
-                                out.trade_date.max().date(), stock=stock,
+    col = f"close_{stock}"
+
+    start = out.trade_date.min().date()
+    partial = (months_back and col in out.columns and out[col].notna().any())
+    if partial:
+        y, m = out.trade_date.max().year, out.trade_date.max().month
+        for _ in range(max(0, months_back - 1)):
+            m -= 1
+            if m == 0:
+                y, m = y - 1, 12
+        start = date(y, m, 1)
+        if verbose:
+            print(f"[{stock}] 增量更新:只抓 {start:%Y-%m} 起的月檔")
+
+    px = twse.load_close_series(start, out.trade_date.max().date(), stock=stock,
                                 verbose=verbose)
     if px.empty:
         if verbose:
             print(f"[warn] {stock} 沒有取得任何價格")
         return out
     adj, splits = twse.split_adjusted(px)
+
+    if partial:
+        # 只覆蓋抓到的那段日期,舊資料原封不動
+        newmap = dict(zip(adj.trade_date, adj.close_adj))
+        out[col] = [newmap.get(d, v) for d, v in zip(out.trade_date, out[col])]
+        out = out.sort_values("trade_date").reset_index(drop=True)
+        out.to_csv(config.OUT_CSV, index=False, encoding="utf-8-sig")
+        try:
+            out.to_parquet(config.OUT_PARQUET, index=False)
+        except Exception as e:                 # noqa: BLE001
+            print(f"[warn] parquet 寫入略過 ({e})")
+        if verbose:
+            print(f"{col}: {out[col].notna().sum()} / {len(out)} 天有價格")
+        return out
     if verbose and splits:
         for ts, prev, cur, ratio in splits:
             print(f"[{stock}] {ts.date()} 偵測到分割 {prev:.2f}->{cur:.2f} "
