@@ -17,7 +17,7 @@ const SERIES = [
 const N = DATA.d.length;
 let view = { from: 0, to: N };            // [from, to) 索引區間
 
-const KEYS = ["d", "v7", "v14", "v30", "m7", "m14", "s7", "s14", "ba", "of", "px"];
+const KEYS = ["d", "v7", "v14", "v30", "m7", "m14", "s7", "s14", "ba", "px"];
 const slice = () => {
   const o = {};
   for (const k of KEYS) o[k] = DATA[k].slice(view.from, view.to);

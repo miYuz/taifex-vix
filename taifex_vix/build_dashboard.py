@@ -16,17 +16,22 @@ import pandas as pd
 
 if __package__ in (None, ""):
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from taifex_vix import config, fetch, pipeline
+    from taifex_vix import config, pipeline
 else:
-    from . import config, fetch, pipeline
+    from . import config, pipeline
 
 TPL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard")
 DEFAULT_OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            "vix_dashboard.html")
 
 
-def build_payload(df, official=True):
-    """主輸出 DataFrame → 給前端的精簡 payload。"""
+def build_payload(df):
+    """主輸出 DataFrame → 給前端的精簡 payload。
+
+    刻意不含官方 30 天 VIX:圖上沒有畫它(只作引擎校準,結果寫在 README),
+    而且期交所只留最近 3 個月 —— 本機有快取、CI 沒有,會讓同樣的資料
+    產生不同的 HTML,每天冒出無意義的 commit。
+    """
     df = df.sort_values("trade_date").reset_index(drop=True)
 
     def col(c, nd=2):
@@ -39,13 +44,6 @@ def build_payload(df, official=True):
             return [None] * len(df)
         return [None if pd.isna(v) else int(v) for v in df[c]]
 
-    om = {}
-    if official:
-        try:
-            off = fetch.load_official_vix_all(refresh_months=0)
-            om = dict(zip(off.trade_date, off.official_vix)) if len(off) else {}
-        except Exception:                       # noqa: BLE001
-            om = {}
 
     return {
         "d": [d.strftime("%Y-%m-%d") for d in df.trade_date],
@@ -54,8 +52,6 @@ def build_payload(df, official=True):
         "m14": [str(x) for x in df.get("vix14_mode", pd.Series([""] * len(df)))],
         "s7": icol("vix7_span"), "s14": icol("vix14_span"),
         "ba": col("ba_ratio", 3), "px": col("close_0050"),
-        "of": [None if d not in om or pd.isna(om[d]) else round(float(om[d]), 2)
-               for d in df.trade_date],
     }
 
 
