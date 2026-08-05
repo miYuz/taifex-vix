@@ -247,11 +247,11 @@
   <div class="filterblock">
     <div class="filters" role="group" aria-label="時間範圍">
       <span class="label">區間</span>
-      <button class="range" data-days="0"    aria-pressed="true">全部</button>
+      <button class="range" data-days="0"    aria-pressed="false">全部</button>
       <button class="range" data-days="880"  aria-pressed="false">2023 起（跨度窄）</button>
       <button class="range" data-days="250"  aria-pressed="false">近 1 年</button>
       <button class="range" data-days="60"   aria-pressed="false">近 3 月</button>
-      <button class="range" data-days="21"   aria-pressed="false">近 1 月</button>
+      <button class="range" data-days="21"   aria-pressed="true">近 1 月</button>
     </div>
     <div class="filters" role="group" aria-label="年度" id="yearRow">
       <span class="label">年度</span>
@@ -312,11 +312,10 @@
   </div>
 
   <footer>
-    <div>資料 2020-01-02 ~ 2026-08-04，共 1599 個交易日。日盤收盤（一般交易時段）。</div>
     <div><b>插值跨度決定可信度。</b>跨度 = 用來插值的兩個到期日相距幾天。實測還原誤差：跨度約 7 天時 MAE 約 0.3；拉到 15 天約 0.9。2022 年以前期交所掛的週選少，跨度中位數 14 天（p90 28 天）；2023 年起降到 7 天；2026 年因為週三＋週五雙週選只剩 2 天。<b>拿 2022 年以前的值做訊號時要放寬容忍度。</b></div>
     <div>模式 <code>exact</code> = 當天剛好有該天期到期序列，直接採用；<code>interp</code> = 前後兩個到期日插值；<code>extrap</code> = 夾不住，往外延伸（上限 2 天，實測 MAE 1.2 以內）；<code>no_bracket</code> = 距離超過上限，寧可留空。</div>
     <div>中價採用率 = strip 中通過品質閘門、真正採用買賣中價的比例，其餘回退結算價。</div>
-    <div>0050 收盤價來自證交所每日行情，已按比例還原 2025-06-18 的 1:4 分割。2025-06-11~06-17 因分割停止交易故無價格。<b>它用獨立座標軸畫在另一張圖</b>——VIX 是 9~70、0050 是 17~111，硬疊同一條軸會製造出資料裡不存在的相關性。</div>
+    <div>0050 收盤價來自證交所每日行情，已按比例還原 2025-06-18 的 1:4 分割。2025-06-11~06-17 因分割停止交易故無價格。</div>
     <div>30 天 VIX 只作為引擎校準用（對照期交所官方指數），不畫在圖上，但仍保留在 <code>vix_txo_daily.csv</code>。</div>
   </footer>
 
@@ -685,8 +684,9 @@ function drawTable(S) {
     </tr>`);
   }
   document.getElementById("tbody").innerHTML = rows.join("");
-  document.querySelector("caption").textContent =
-    `區間最後 ${rows.length} 個交易日（完整資料在 D:\\taifex_vix\\vix_txo_daily.csv）`;
+  document.querySelector("caption").innerHTML =
+    `區間最後 ${rows.length} 個交易日（<a href="https://github.com/miYuz/taifex-vix/blob/main/data/vix_txo_daily.csv"` +
+    ` target="_blank" rel="noopener">完整資料 CSV</a>）`;
 }
 
 /* ---------- 互動:游標線貫穿三張圖 ---------- */

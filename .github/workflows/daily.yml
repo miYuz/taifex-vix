@@ -1,12 +1,15 @@
 name: Daily update
 
-# 期交所結算價實測在 14:32~15:12(台北)之間公布,所以排在 15:20 台北。
-# GitHub 的 cron 是 UTC,台北 = UTC+8 → 07:20 UTC。
-# 注意:GitHub 的排程在尖峰時段可能延遲數十分鐘。對這個用途「晚一點」是安全的
-# (結算價只會更確定),而且 --wait 會補上等待,所以不影響正確性。
+# 台北時間 15:10 觸發(GitHub 的 cron 是 UTC,台北 = UTC+8 → 07:10 UTC)。
+#
+# 注意兩件事,所以下面的 --wait 45 是必要的、不是保險:
+# 1. 期交所結算價實測在 14:32~15:12 之間才公布 —— 15:10 觸發時很可能還沒出。
+# 2. GitHub 的排程在尖峰時段常延遲 5~30 分鐘,實際觸發時間不保證。
+# --wait 45 讓它從觸發起每 3 分鐘重試,最晚 15:55 前一定抓得到;
+# 若真的等不到就靜靜退回前一交易日,不會寫入錯的資料。
 on:
   schedule:
-    - cron: "20 7 * * 1-5"
+    - cron: "10 7 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -37,7 +40,7 @@ jobs:
           TAIFEX_VIX_OUT: ${{ github.workspace }}/data
           PYTHONIOENCODING: utf-8
         run: |
-          python -m taifex_vix.cli daily --wait 30
+          python -m taifex_vix.cli daily --wait 45
           python -m taifex_vix.build_dashboard docs/index.html
 
       - name: 有變動才 commit

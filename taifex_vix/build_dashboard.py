@@ -68,9 +68,6 @@ def build(out_path=None, verbose=True):
     tail = open(os.path.join(TPL_DIR, "template_tail.js"),
                 encoding="utf-8").read()
 
-    # 頁尾的資料範圍字串跟著實際資料走,不寫死
-    head = _patch_footer(head, df)
-
     data_js = "const DATA = " + json.dumps(payload, separators=(",", ":")) + ";"
     html = head + "\n<script>\n" + data_js + "\n" + tail + "\n</" + "script>\n"
     with open(out_path, "w", encoding="utf-8") as f:
@@ -80,14 +77,6 @@ def build(out_path=None, verbose=True):
               f"{len(df)} 個交易日, 最後 {df.trade_date.max():%Y-%m-%d})")
     return out_path
 
-
-def _patch_footer(head, df):
-    """把頁尾的「資料 X ~ Y，共 N 個交易日」換成目前實際的範圍。"""
-    import re
-    new = (f"資料 {df.trade_date.min():%Y-%m-%d} ~ {df.trade_date.max():%Y-%m-%d}，"
-           f"共 {len(df)} 個交易日。")
-    return re.sub(r"資料 \d{4}-\d{2}-\d{2} ~ \d{4}-\d{2}-\d{2}，共 [\d,]+ 個交易日。",
-                  new, head)
 
 
 def main(argv=None):

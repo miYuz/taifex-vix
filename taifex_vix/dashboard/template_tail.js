@@ -359,8 +359,9 @@ function drawTable(S) {
     </tr>`);
   }
   document.getElementById("tbody").innerHTML = rows.join("");
-  document.querySelector("caption").textContent =
-    `區間最後 ${rows.length} 個交易日（完整資料在 D:\\taifex_vix\\vix_txo_daily.csv）`;
+  document.querySelector("caption").innerHTML =
+    `區間最後 ${rows.length} 個交易日（<a href="https://github.com/miYuz/taifex-vix/blob/main/data/vix_txo_daily.csv"` +
+    ` target="_blank" rel="noopener">完整資料 CSV</a>）`;
 }
 
 /* ---------- 互動:游標線貫穿三張圖 ---------- */
