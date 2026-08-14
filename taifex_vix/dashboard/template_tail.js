@@ -8,11 +8,15 @@ const el = (n, a = {}) => {
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = (v, n = 2) => (v === null || v === undefined || Number.isNaN(v)) ? "—" : v.toFixed(n);
 
-// 30 天只作校準用(對照官方指數),不畫在圖上
-const SERIES = [
-  { key: "v7",  name: "VIX 7天",  color: "--s1", short: "7天"  },
-  { key: "v14", name: "VIX 14天", color: "--s2", short: "14天" },
-];
+// 主圖畫 VIX7 + 一條長天期,由最上方的「長天期」切換鈕決定。
+// 顏色綁在實體上而非位置上:VIX14 恆為橘、VIX30 恆為黃,
+// 切換時不會出現同一個顏色代表不同東西的情形。
+const LONG = {
+  v14: { key: "v14", name: "VIX 14天", color: "--s2", short: "14天", gap: "7-14" },
+  v30: { key: "v30", name: "VIX 30天", color: "--s4", short: "30天", gap: "7-30" },
+};
+const V7 = { key: "v7", name: "VIX 7天", color: "--s1", short: "7天" };
+const seriesList = () => [V7, LONG[spreadLong]];
 
 // 期限結構圖要拿哪一條長天期去減:'v14' 或 'v30'
 let spreadLong = "v14";
@@ -82,7 +86,7 @@ function drawMain(host, S) {
   const iw = W - M.l - M.r, ih = PLOT_H;
 
   const vals = [];
-  for (const s of SERIES) for (const v of S[s.key]) if (v !== null) vals.push(v);
+  for (const s of seriesList()) for (const v of S[s.key]) if (v !== null) vals.push(v);
   const lo0 = Math.min(...vals), hi0 = Math.max(...vals);
   const pad = (hi0 - lo0) * 0.08 || 1;
   const lo = Math.max(0, lo0 - pad), hi = hi0 + pad;
@@ -118,7 +122,7 @@ function drawMain(host, S) {
 
   // 線
   const ends = [];
-  for (const s of SERIES) {
+  for (const s of seriesList()) {
     let dpath = "", open = false, lastI = -1;
     S[s.key].forEach((v, i) => {
       if (v === null) { open = false; return; }
@@ -152,7 +156,7 @@ function drawMain(host, S) {
   const cross = el("line", { y1: M.t, y2: M.t + ih, stroke: css("--axis"),
                              "stroke-width": 1, opacity: 0 });
   svg.appendChild(cross);
-  const dots = SERIES.map((s) => ({
+  const dots = seriesList().map((s) => ({
     el: svg.appendChild(el("circle", { r: 4, fill: css(s.color),
                                        stroke: css("--surface"),
                                        "stroke-width": 2, opacity: 0 })),
@@ -337,7 +341,8 @@ function drawTiles(S) {
   const items = [
     { k: "VIX 7天",  c: "--s1", v: S.v7[i],
       sub: `模式 ${S.m7[i]}・跨度 ${S.s7[i] === null ? "—" : S.s7[i] + " 天"}` },
-    { k: "VIX 14天", c: "--s2", v: S.v14[i], sub: `模式 ${S.m14[i]}` },
+    { k: LONG[spreadLong].name, c: LONG[spreadLong].color,
+      v: S[spreadLong][i], sub: spreadLong === "v14" ? `模式 ${S.m14[i]}` : "引擎校準基準" },
     { k: spreadLong === "v30" ? "7天 - 30天" : "7天 - 14天", c: null, v: spread,
       sub: spread === null ? "—" : (spread > 0 ? "短天期較貴（倒掛）" : "正價差") },
     { k: "0050 收盤", c: "--s3", v: S.px[i], sub: "已還原分割" },
@@ -352,18 +357,21 @@ function drawTiles(S) {
 }
 
 function drawTable(S) {
-  const th = document.getElementById("thSpread");
-  if (th) th.textContent = spreadLong === "v30" ? "7-30" : "7-14";
   const rows = [];
   for (let i = S.d.length - 1; i >= 0 && rows.length < 15; i--) {
-    const sp = (S.v7[i] === null || S[spreadLong][i] === null)
-      ? null : S.v7[i] - S[spreadLong][i];
+    // 兩個價差都列出來,不跟著切換鈕跑 —— 表格是「查數字」的地方,
+    // 要能一次看到全部,不必為了看另一個而去切換
+    const s14 = (S.v7[i] === null || S.v14[i] === null) ? null : S.v7[i] - S.v14[i];
+    const s30 = (S.v7[i] === null || S.v30[i] === null) ? null : S.v7[i] - S.v30[i];
+    const sgn = (v) => v === null ? "—" : (v > 0 ? "+" : "") + fmt(v);
     rows.push(`<tr>
       <td>${S.d[i]}</td>
       <td class="${S.v7[i] === null ? "na" : ""}">${fmt(S.v7[i])}</td>
       <td class="${S.v14[i] === null ? "na" : ""}">${fmt(S.v14[i])}</td>
+      <td class="${S.v30[i] === null ? "na" : ""}">${fmt(S.v30[i])}</td>
       <td class="${S.px[i] === null ? "na" : ""}">${fmt(S.px[i])}</td>
-      <td class="${sp === null ? "na" : ""}">${sp === null ? "—" : (sp > 0 ? "+" : "") + fmt(sp)}</td>
+      <td class="${s14 === null ? "na" : ""}">${sgn(s14)}</td>
+      <td class="${s30 === null ? "na" : ""}">${sgn(s30)}</td>
       <td><span class="badge">${S.m7[i]}</span></td>
       <td class="${S.s7[i] !== null && S.s7[i] > 14 ? "na" : ""}">${S.s7[i] === null ? "—" : S.s7[i] + " 天"}</td>
       <td>${S.ba[i] === null ? "—" : (S.ba[i] * 100).toFixed(0) + "%"}</td>
@@ -377,13 +385,13 @@ function drawTable(S) {
 
 /* ---------- 互動:游標線貫穿三張圖 ---------- */
 function tipHTML(S, sp, i) {
-  const rows = SERIES.map((s) => `
+  const rows = seriesList().map((s) => `
     <div class="row"><span class="swatch" style="background:var(${s.color})"></span>${s.short}
     <b>${fmt(S[s.key][i])}</b></div>`).join("");
   const span = S.s7[i];
   const q = span === null ? "" : span <= 7 ? "窄" : span <= 14 ? "中" : "寬";
   return `<div class="date">${S.d[i]}</div>${rows}
-    <div class="row">${spreadLong === "v30" ? "7-30" : "7-14"}
+    <div class="row">${LONG[spreadLong].gap}
       <b>${sp[i] === null ? "—" : (sp[i] > 0 ? "+" : "") + fmt(sp[i])}</b></div>
     <div class="row" style="margin-top:4px">
       <span class="swatch" style="background:var(--s3)"></span>0050
@@ -485,7 +493,8 @@ function buildYearButtons() {
 
 // 兩組互斥:選了年度就取消區間,反之亦然
 function selectButton(b) {
-  document.querySelectorAll("button.range")
+  // 只動區間/年度那兩排 —— 長天期鈕也是 .range,不排除的話會被一起清成未選中
+  document.querySelectorAll("button.range:not([data-long])")
     .forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
   if (b.dataset.from !== undefined) {
     view.from = +b.dataset.from;
@@ -498,7 +507,7 @@ function selectButton(b) {
   render();
 }
 
-document.querySelectorAll(".filters button.range")
+document.querySelectorAll(".filters button.range:not([data-long])")
   .forEach((b) => b.addEventListener("click", () => selectButton(b)));
 
 let rt;
@@ -518,12 +527,23 @@ function stamp() {
 
 // 期限結構的 7-14 / 7-30 切換。只影響那一張圖,所以控制項放在該卡片裡,
 // 不放上方的全域區間列 —— 放上去會讓人誤以為它會影響整頁。
-document.querySelectorAll(".segbtn").forEach((b) => {
+// 長天期切換:同時決定主圖的第二條線與期限結構圖要減哪一條,
+// 所以放在最上方的全域篩選列(而不是某張圖的卡片裡)。
+function applyLong() {
+  document.getElementById("spreadTitle").textContent = SPREAD_LABEL[spreadLong];
+  const L = LONG[spreadLong];
+  const line = document.getElementById("legLongLine");
+  const text = document.getElementById("legLongText");
+  if (line) line.style.background = `var(${L.color})`;
+  if (text) text.textContent = L.name;
+}
+
+document.querySelectorAll("button.range[data-long]").forEach((b) => {
   b.addEventListener("click", () => {
     spreadLong = b.dataset.long;
-    document.querySelectorAll(".segbtn")
+    document.querySelectorAll("button.range[data-long]")
       .forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
-    document.getElementById("spreadTitle").textContent = SPREAD_LABEL[spreadLong];
+    applyLong();
     render();
   });
 });
@@ -532,15 +552,13 @@ function boot() {
   indexData();
   buildYearButtons();
   stamp();
-  const seg = document.querySelector('.segbtn[aria-pressed="true"]');
-  if (seg) {
-    spreadLong = seg.dataset.long;
-    document.getElementById("spreadTitle").textContent = SPREAD_LABEL[spreadLong];
-  }
+  const seg = document.querySelector('button.range[data-long][aria-pressed="true"]');
+  if (seg) spreadLong = seg.dataset.long;
+  applyLong();
   // 初始區間跟著 HTML 裡 aria-pressed="true" 的那顆按鈕走。
   // 直接 render() 的話 view 還停在預設值,按鈕卻標著別的,要手動再點一次才一致。
-  selectButton(document.querySelector('.filters button.range[aria-pressed="true"]') ||
-               document.querySelector(".filters button.range"));
+  selectButton(document.querySelector('.filters button.range:not([data-long])[aria-pressed="true"]') ||
+               document.querySelector('.filters button.range:not([data-long])'));
 }
 
 // GitHub Pages 對 HTML 送 Cache-Control: max-age=600。資料若內嵌在 HTML 裡,

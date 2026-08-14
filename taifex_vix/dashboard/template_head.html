@@ -15,7 +15,8 @@
     --hairline:     rgba(11,11,11,0.10);
     --s1:           #2a78d6;   /* VIX7  */
     --s2:           #eb6834;   /* VIX14 */
-    --s3:           #1baf7a;   /* VIX30 */
+    --s3:           #1baf7a;   /* 0050  */
+    --s4:           #eda100;   /* VIX30 */
     --pos:          #e34948;   /* 價差為正:短天期較高 */
     --neg:          #2a78d6;   /* 價差為負 */
     --chip:         rgba(11,11,11,0.05);
@@ -34,6 +35,7 @@
       --s1:       #3987e5;
       --s2:       #d95926;
       --s3:       #199e70;
+      --s4:       #c98500;
       --pos:      #e66767;
       --neg:      #3987e5;
       --chip:     rgba(255,255,255,0.06);
@@ -52,6 +54,7 @@
     --s1:       #3987e5;
     --s2:       #d95926;
     --s3:       #199e70;
+    --s4:       #c98500;
     --pos:      #e66767;
     --neg:      #3987e5;
     --chip:     rgba(255,255,255,0.06);
@@ -129,20 +132,6 @@
 
   .stamp { font-size: 11.5px; color: var(--muted); letter-spacing: 0.02em; }
 
-  /* 單一圖表的量測切換 —— 刻意做得比上方區間按鈕小且相連,
-     免得被誤讀成會影響整頁的篩選器 */
-  .seg { display: inline-flex; border: 1px solid var(--hairline); }
-  .segbtn {
-    font: inherit; font-size: 11.5px;
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-    padding: 3px 10px; min-height: 24px;
-    color: var(--muted); background: var(--surface);
-    border: 0; cursor: pointer;
-  }
-  .segbtn + .segbtn { border-left: 1px solid var(--hairline); }
-  .segbtn:hover { background: var(--chip); color: var(--ink); }
-  .segbtn[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
-  .segbtn:focus-visible { outline: 2px solid var(--s1); outline-offset: 1px; }
 
   /* ---------- stat tiles ---------- */
   .tiles {
@@ -212,7 +201,7 @@
 
   /* ---------- table ---------- */
   .tablewrap { overflow-x: auto; border: 1px solid var(--hairline); background: var(--surface); }
-  table { border-collapse: collapse; width: 100%; min-width: 620px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; }
   caption {
     text-align: left; padding: 14px 16px 10px;
     font-size: 14px; font-weight: 620;
@@ -275,6 +264,12 @@
     <div class="filters" role="group" aria-label="年度" id="yearRow">
       <span class="label">年度</span>
     </div>
+    <div class="filters" role="group" aria-label="長天期">
+      <span class="label">長天期</span>
+      <button class="range" data-long="v14" aria-pressed="true">VIX 14 天</button>
+      <button class="range" data-long="v30" aria-pressed="false">VIX 30 天</button>
+      <span class="note" style="font-size:12px;color:var(--muted)">同時套用到上方走勢圖與期限結構圖</span>
+    </div>
   </div>
 
   <div class="stamp mono" id="stamp"></div>
@@ -287,7 +282,7 @@
       <span class="note" id="rangeNote"></span>
       <div class="legend">
         <span class="item"><span class="line" style="background:var(--s1)"></span>VIX 7天</span>
-        <span class="item"><span class="line" style="background:var(--s2)"></span>VIX 14天</span>
+        <span class="item"><span class="line" id="legLongLine" style="background:var(--s2)"></span><span id="legLongText">VIX 14天</span></span>
       </div>
     </div>
     <div class="plot" id="plotMain"><div class="tip" id="tip"></div></div>
@@ -304,10 +299,6 @@
   <section class="card">
     <div class="card-head">
       <h2>期限結構：<span id="spreadTitle">VIX7 - VIX14</span></h2>
-      <div class="seg" role="group" aria-label="價差組合">
-        <button class="segbtn" data-long="v14" aria-pressed="true">7-14</button>
-        <button class="segbtn" data-long="v30" aria-pressed="false">7-30</button>
-      </div>
       <span class="note">高於零 = 短天期較貴（恐慌／倒掛）</span>
       <div class="legend">
         <span class="item"><span class="line" style="background:var(--pos);height:8px;width:10px"></span>正值 倒掛</span>
@@ -325,8 +316,10 @@
           <th scope="col">交易日</th>
           <th scope="col">VIX 7天</th>
           <th scope="col">VIX 14天</th>
+          <th scope="col">VIX 30天</th>
           <th scope="col">0050 收盤</th>
-          <th scope="col" id="thSpread">7-14</th>
+          <th scope="col">7-14</th>
+          <th scope="col">7-30</th>
           <th scope="col">7天模式</th>
           <th scope="col">插值跨度</th>
           <th scope="col">中價採用率</th>
