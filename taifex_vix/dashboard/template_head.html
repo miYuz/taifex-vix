@@ -201,7 +201,7 @@
 
   /* ---------- table ---------- */
   .tablewrap { overflow-x: auto; border: 1px solid var(--hairline); background: var(--surface); }
-  table { border-collapse: collapse; width: 100%; min-width: 760px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; }
   caption {
     text-align: left; padding: 14px 16px 10px;
     font-size: 14px; font-weight: 620;
@@ -220,10 +220,6 @@
   }
   th:first-child, td:first-child { text-align: left; }
   tbody tr:hover { background: var(--chip); }
-  .badge {
-    display: inline-block; padding: 1px 6px; font-size: 10.5px;
-    border: 1px solid var(--hairline); color: var(--ink-2);
-  }
   .na { color: var(--muted); }
 
   footer {
@@ -320,9 +316,6 @@
           <th scope="col">0050 收盤</th>
           <th scope="col">7-14</th>
           <th scope="col">7-30</th>
-          <th scope="col">7天模式</th>
-          <th scope="col">插值跨度</th>
-          <th scope="col">中價採用率</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -332,7 +325,6 @@
   <footer>
     <div><b>插值跨度決定可信度。</b>跨度 = 用來插值的兩個到期日相距幾天。實測還原誤差：跨度約 7 天時 MAE 約 0.3；拉到 15 天約 0.9。2022 年以前期交所掛的週選少，跨度中位數 14 天（p90 28 天）；2023 年起降到 7 天；2026 年因為週三＋週五雙週選只剩 2 天。<b>拿 2022 年以前的值做訊號時要放寬容忍度。</b></div>
     <div>模式 <code>exact</code> = 當天剛好有該天期到期序列，直接採用；<code>interp</code> = 前後兩個到期日插值；<code>extrap</code> = 夾不住，往外延伸（上限 2 天，實測 MAE 1.2 以內）；<code>no_bracket</code> = 距離超過上限，寧可留空。</div>
-    <div>中價採用率 = strip 中通過品質閘門、真正採用買賣中價的比例，其餘回退結算價。</div>
     <div>0050 收盤價來自證交所每日行情，已按比例還原 2025-06-18 的 1:4 分割。2025-06-11~06-17 因分割停止交易故無價格。</div>
     <div>30 天 VIX 只作為引擎校準用（對照期交所官方指數），不畫在圖上，但仍保留在 <code>vix_txo_daily.csv</code>。</div>
   </footer>

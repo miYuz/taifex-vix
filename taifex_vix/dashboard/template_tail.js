@@ -370,9 +370,6 @@ function drawTable(S) {
       <td class="${S.px[i] === null ? "na" : ""}">${fmt(S.px[i])}</td>
       <td class="${s14 === null ? "na" : ""}">${sgn(s14)}</td>
       <td class="${s30 === null ? "na" : ""}">${sgn(s30)}</td>
-      <td><span class="badge">${S.m7[i]}</span></td>
-      <td class="${S.s7[i] !== null && S.s7[i] > 14 ? "na" : ""}">${S.s7[i] === null ? "—" : S.s7[i] + " 天"}</td>
-      <td>${S.ba[i] === null ? "—" : (S.ba[i] * 100).toFixed(0) + "%"}</td>
     </tr>`);
   }
   document.getElementById("tbody").innerHTML = rows.join("");
