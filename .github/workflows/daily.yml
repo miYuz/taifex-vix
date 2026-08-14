@@ -61,8 +61,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data docs
-          if git diff --cached --quiet; then
+          # 只看 data/ 決定要不要 commit。docs/ 內含建置時間戳,每次都會不一樣,
+          # 拿它判斷的話三個排程時段就會各推一次同樣的資料(實測每天 3 個 commit)。
+          if git diff --cached --quiet -- data; then
             echo "資料沒有變動(可能是非交易日,或結算價還沒出),不產生 commit"
+            git reset -q            # 連 docs 的時間戳變動一起丟掉
             exit 0
           fi
           LAST=$(python -c "import pandas as pd; d=pd.read_csv('data/vix_txo_daily.csv'); print(d.trade_date.max())")

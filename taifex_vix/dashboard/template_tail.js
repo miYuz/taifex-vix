@@ -14,6 +14,10 @@ const SERIES = [
   { key: "v14", name: "VIX 14天", color: "--s2", short: "14天" },
 ];
 
+// 期限結構圖要拿哪一條長天期去減:'v14' 或 'v30'
+let spreadLong = "v14";
+const SPREAD_LABEL = { v14: "VIX7 - VIX14", v30: "VIX7 - VIX30" };
+
 // N / YEARS / view 在 boot() 裡才決定 —— 資料可能被 data.json 換掉(見檔尾)
 let N = 0;
 let view = { from: 0, to: 0 };            // [from, to) 索引區間
@@ -168,7 +172,8 @@ function drawSpread(host, S) {
   const H = PLOT_H + M.t + M.b;
   const iw = W - M.l - M.r, ih = PLOT_H;
 
-  const sp = S.v7.map((a, i) => (a === null || S.v14[i] === null) ? null : a - S.v14[i]);
+  const far = S[spreadLong];   // 'v14' 或 'v30',由圖上的切換鈕決定
+  const sp = S.v7.map((a, i) => (a === null || far[i] === null) ? null : a - far[i]);
   const vals = sp.filter((v) => v !== null);
   const mx = Math.max(Math.abs(Math.min(...vals)), Math.abs(Math.max(...vals))) * 1.1 || 1;
   const n = sp.length;
@@ -176,7 +181,7 @@ function drawSpread(host, S) {
   const Y = (v) => M.t + ih / 2 - (v / mx) * (ih / 2);
 
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H,
-                          role: "img", "aria-label": "VIX7 減 VIX14 期限結構價差" });
+                          role: "img", "aria-label": SPREAD_LABEL[spreadLong] + " 期限結構價差" });
 
   for (const t of [mx * 0.6, -mx * 0.6]) {
     svg.appendChild(el("line", { x1: M.l, x2: M.l + iw, y1: Y(t), y2: Y(t),
@@ -327,12 +332,13 @@ function drawPrice(host, S) {
 /* ---------- 卡片 ---------- */
 function drawTiles(S) {
   const i = S.d.length - 1;
-  const spread = (S.v7[i] === null || S.v14[i] === null) ? null : S.v7[i] - S.v14[i];
+  const farT = S[spreadLong];
+  const spread = (S.v7[i] === null || farT[i] === null) ? null : S.v7[i] - farT[i];
   const items = [
     { k: "VIX 7天",  c: "--s1", v: S.v7[i],
       sub: `模式 ${S.m7[i]}・跨度 ${S.s7[i] === null ? "—" : S.s7[i] + " 天"}` },
     { k: "VIX 14天", c: "--s2", v: S.v14[i], sub: `模式 ${S.m14[i]}` },
-    { k: "7天 - 14天", c: null, v: spread,
+    { k: spreadLong === "v30" ? "7天 - 30天" : "7天 - 14天", c: null, v: spread,
       sub: spread === null ? "—" : (spread > 0 ? "短天期較貴（倒掛）" : "正價差") },
     { k: "0050 收盤", c: "--s3", v: S.px[i], sub: "已還原分割" },
   ];
@@ -346,9 +352,12 @@ function drawTiles(S) {
 }
 
 function drawTable(S) {
+  const th = document.getElementById("thSpread");
+  if (th) th.textContent = spreadLong === "v30" ? "7-30" : "7-14";
   const rows = [];
   for (let i = S.d.length - 1; i >= 0 && rows.length < 15; i--) {
-    const sp = (S.v7[i] === null || S.v14[i] === null) ? null : S.v7[i] - S.v14[i];
+    const sp = (S.v7[i] === null || S[spreadLong][i] === null)
+      ? null : S.v7[i] - S[spreadLong][i];
     rows.push(`<tr>
       <td>${S.d[i]}</td>
       <td class="${S.v7[i] === null ? "na" : ""}">${fmt(S.v7[i])}</td>
@@ -374,7 +383,7 @@ function tipHTML(S, sp, i) {
   const span = S.s7[i];
   const q = span === null ? "" : span <= 7 ? "窄" : span <= 14 ? "中" : "寬";
   return `<div class="date">${S.d[i]}</div>${rows}
-    <div class="row">7-14
+    <div class="row">${spreadLong === "v30" ? "7-30" : "7-14"}
       <b>${sp[i] === null ? "—" : (sp[i] > 0 ? "+" : "") + fmt(sp[i])}</b></div>
     <div class="row" style="margin-top:4px">
       <span class="swatch" style="background:var(--s3)"></span>0050
@@ -507,10 +516,27 @@ function stamp() {
     (DATA.built ? `　·　更新於 ${DATA.built}` : "");
 }
 
+// 期限結構的 7-14 / 7-30 切換。只影響那一張圖,所以控制項放在該卡片裡,
+// 不放上方的全域區間列 —— 放上去會讓人誤以為它會影響整頁。
+document.querySelectorAll(".segbtn").forEach((b) => {
+  b.addEventListener("click", () => {
+    spreadLong = b.dataset.long;
+    document.querySelectorAll(".segbtn")
+      .forEach((o) => o.setAttribute("aria-pressed", String(o === b)));
+    document.getElementById("spreadTitle").textContent = SPREAD_LABEL[spreadLong];
+    render();
+  });
+});
+
 function boot() {
   indexData();
   buildYearButtons();
   stamp();
+  const seg = document.querySelector('.segbtn[aria-pressed="true"]');
+  if (seg) {
+    spreadLong = seg.dataset.long;
+    document.getElementById("spreadTitle").textContent = SPREAD_LABEL[spreadLong];
+  }
   // 初始區間跟著 HTML 裡 aria-pressed="true" 的那顆按鈕走。
   // 直接 render() 的話 view 還停在預設值,按鈕卻標著別的,要手動再點一次才一致。
   selectButton(document.querySelector('.filters button.range[aria-pressed="true"]') ||

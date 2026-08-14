@@ -129,6 +129,21 @@
 
   .stamp { font-size: 11.5px; color: var(--muted); letter-spacing: 0.02em; }
 
+  /* 單一圖表的量測切換 —— 刻意做得比上方區間按鈕小且相連,
+     免得被誤讀成會影響整頁的篩選器 */
+  .seg { display: inline-flex; border: 1px solid var(--hairline); }
+  .segbtn {
+    font: inherit; font-size: 11.5px;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    padding: 3px 10px; min-height: 24px;
+    color: var(--muted); background: var(--surface);
+    border: 0; cursor: pointer;
+  }
+  .segbtn + .segbtn { border-left: 1px solid var(--hairline); }
+  .segbtn:hover { background: var(--chip); color: var(--ink); }
+  .segbtn[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .segbtn:focus-visible { outline: 2px solid var(--s1); outline-offset: 1px; }
+
   /* ---------- stat tiles ---------- */
   .tiles {
     display: grid;
@@ -288,7 +303,11 @@
 
   <section class="card">
     <div class="card-head">
-      <h2>期限結構：VIX7 - VIX14</h2>
+      <h2>期限結構：<span id="spreadTitle">VIX7 - VIX14</span></h2>
+      <div class="seg" role="group" aria-label="價差組合">
+        <button class="segbtn" data-long="v14" aria-pressed="true">7-14</button>
+        <button class="segbtn" data-long="v30" aria-pressed="false">7-30</button>
+      </div>
       <span class="note">高於零 = 短天期較貴（恐慌／倒掛）</span>
       <div class="legend">
         <span class="item"><span class="line" style="background:var(--pos);height:8px;width:10px"></span>正值 倒掛</span>
@@ -307,7 +326,7 @@
           <th scope="col">VIX 7天</th>
           <th scope="col">VIX 14天</th>
           <th scope="col">0050 收盤</th>
-          <th scope="col">7-14</th>
+          <th scope="col" id="thSpread">7-14</th>
           <th scope="col">7天模式</th>
           <th scope="col">插值跨度</th>
           <th scope="col">中價採用率</th>
