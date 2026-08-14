@@ -339,10 +339,8 @@ function drawTiles(S) {
   const farT = S[spreadLong];
   const spread = (S.v7[i] === null || farT[i] === null) ? null : S.v7[i] - farT[i];
   const items = [
-    { k: "VIX 7天",  c: "--s1", v: S.v7[i],
-      sub: `模式 ${S.m7[i]}・跨度 ${S.s7[i] === null ? "—" : S.s7[i] + " 天"}` },
-    { k: LONG[spreadLong].name, c: LONG[spreadLong].color,
-      v: S[spreadLong][i], sub: spreadLong === "v14" ? `模式 ${S.m14[i]}` : "引擎校準基準" },
+    { k: "VIX 7天", c: "--s1", v: S.v7[i] },
+    { k: LONG[spreadLong].name, c: LONG[spreadLong].color, v: S[spreadLong][i] },
     { k: spreadLong === "v30" ? "7天 - 30天" : "7天 - 14天", c: null, v: spread,
       sub: spread === null ? "—" : (spread > 0 ? "短天期較貴（倒掛）" : "正價差") },
     { k: "0050 收盤", c: "--s3", v: S.px[i], sub: "已還原分割" },
@@ -351,7 +349,7 @@ function drawTiles(S) {
     <div class="tile">
       <div class="k">${it.c ? `<span class="swatch" style="background:var(${it.c})"></span>` : ""}${it.k}</div>
       <div class="v">${it.v === null ? "—" : (it.k.includes("-") && it.v > 0 ? "+" : "") + fmt(it.v)}</div>
-      <div class="sub">${it.sub}</div>
+      ${it.sub ? `<div class="sub">${it.sub}</div>` : ""}
     </div>`).join("");
   document.querySelector("header .lede").insertAdjacentHTML;
 }
